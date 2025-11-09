@@ -1,43 +1,41 @@
-#include "liboai.h"
 #include <iostream>
+#include <cstdio>
+#include <string>
+#include <memory>
+#include <leptonica/allheaders.h>
+#include "rfb_handler.hh"
+#include "helper.hh"
+#include "ocr.hh"
 
-std::string getenv_cc(std::string_view name, std::string_view def = "")
+int main(int argc, char **argv)
 {
-	std::string name_cpy = std::string(name);
-	const char *env = getenv(name_cpy.c_str());
-	if (env == NULL) return std::string(def);
-	return std::string(env);
-}
-
-int main()
-{
-	std::string oai_endpoint = getenv_cc("OPENAI_API_BASE", "https://api.deepseek.com");
-	liboai::OpenAI oai(oai_endpoint);
-	if (!oai.auth.SetKeyEnv("OPENAI_API_KEY"))
-	{
-		std::cerr << "pls provide a valid api key in the env variable OPENAI_API_KEY" << std::endl;
-		return 1;
-	}
-	std::string oai_model = getenv_cc("OPENAI_MODEL", "deepseek-chat");
-	std::cout << "Using API endpoint: " << oai_endpoint << '\n';
-	std::cout << "Using model: " << oai_model << '\n';
+	using namespace std::chrono_literals;
+	int rfb_port;
 	try
 	{
-		liboai::Conversation conv("You are a little sister character talking to your brother (named Onii-chan).");
-		std::string user_res;
-		for (;;)
-		{
-			std::cout << "> ";
-			std::getline(std::cin, user_res);
-			if (user_res == "q") break;
-			conv.AddUserData(user_res);
-			liboai::Response res = oai.ChatCompletion->create(oai_model, conv);
-			conv.Update(res);
-			std::cout << conv.GetLastResponse() << std::endl;
-		}
+		rfb_port = stoi(getenv_cc("RFB_PORT", "0"));
 	}
-	catch (std::exception &e)
+	catch (std::invalid_argument &)
 	{
-		std::cerr << e.what() << std::endl;
+		std::cerr << "warning: the environment variable RFB_PORT is not a valid number, using default\n";
+		rfb_port = 0;
 	}
+	char rfb_host[24];
+	std::sprintf(rfb_host, "127.0.0.1:%d", 5900 + rfb_port);
+	RFBContext rfb(argv[0], rfb_host);
+
+	while (rfb.running())
+	{
+		std::getchar();
+		Pix *screenie = rfb.screenshot();
+		auto ocr_res = ocr(screenie);
+		for (int y = 0; y < ocr_res.h; y++)
+		{
+			for (int x = 0; x < ocr_res.w; x++)
+				std::cerr << static_cast<char>(ocr_res(x, y));
+			std::cerr << '\n';
+		}
+		pixDestroy(&screenie);
+	}
+	return 0;
 }

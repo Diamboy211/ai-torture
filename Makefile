@@ -1,8 +1,13 @@
-.PHONY: all run clean seabios liboai kernel clean_seabios clean_liboai clean_kernel
+.PHONY: all run_qemu run_jail clean seabios liboai kernel clean_seabios clean_liboai clean_kernel
+
+export RFB_PORT ?= 1
+
 all: seabios liboai kernel jail
 
-run:
-	qemu-system-x86_64 -bios seabios/out/bios.bin -fda kernel/kernel.img
+run_qemu: seabios kernel
+	$(MAKE) -C kernel run
+run_jail: jail
+	$(MAKE) -C jail run
 
 seabios:
 	$(MAKE) -C seabios

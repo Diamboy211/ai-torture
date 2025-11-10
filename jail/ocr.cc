@@ -2,8 +2,14 @@
 #include <cstring>
 #include <iostream>
 #include <iomanip>
-#include "vgafont16.hh"
 #include "ocr.hh"
+#include "ocr_tree_autogen.inc.cc"
+
+#define OCR_USE_TREE
+
+#ifndef OCR_USE_TREE
+#include "vgafont16.hh"
+#endif
 
 CharGrid::CharGrid(int w, int h) : w(w), h(h), data(w*h) {}
 
@@ -58,6 +64,15 @@ CharGrid ocr(Pix *img)
 				cg(x, y) = ' ';
 				continue;
 			}
+		#ifdef OCR_USE_TREE
+			int node = 0;
+			while (tree[node] != 65535)
+			{
+				int idx = tree[node];
+				node = tree[node + 1 + !!(c[idx / 8] & (1 << (idx % 8)))];
+			}
+			cg(x, y) = tree[node + 1];
+		#else
 			int max_sim = -1;
 			uint8_t max_sim_char = 0;
 			for (int i = 1; i < 256; i++)
@@ -66,6 +81,7 @@ CharGrid ocr(Pix *img)
 				if (max_sim < s) max_sim = s, max_sim_char = i;
 			}
 			cg(x, y) = max_sim_char;
+		#endif
 		}
 	return cg;
 }

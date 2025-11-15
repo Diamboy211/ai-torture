@@ -35,6 +35,7 @@ public:
 	bool running() const;
 	void send_key_event(uint32_t key, bool down);
 	void set_key_cooldown(int ms);
+	void wait_keys();
 	Pix *screenshot();
 	~RFBContext();
 };

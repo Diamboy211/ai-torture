@@ -10,7 +10,7 @@ void RFBContext::ev_loop()
 {
 	do
 	{
-		int n = WaitForMessage(client, 10);
+		int n = WaitForMessage(client, 0);
 		if (n < 0)
 		{
 			err = true;
@@ -45,7 +45,7 @@ void RFBContext::ev_loop()
 RFBContext::RFBContext(std::string_view prog, std::string_view hostname)
 {
 	kb_last = std::chrono::steady_clock::now();
-	kb_cooldown = 33ms;
+	kb_cooldown = 67ms;
 	auto tovec = [](std::string_view s)
 	{
 		std::vector<char> c(s.size() + 1);
@@ -86,6 +86,22 @@ void RFBContext::set_key_cooldown(int ms)
 	mutex_rfb.lock();
 	kb_cooldown = std::chrono::milliseconds(ms);
 	mutex_rfb.unlock();
+}
+
+void RFBContext::wait_keys()
+{
+	for (;;)
+	{
+		mutex_rfb.lock();
+		bool done = kb_queue.empty();
+		auto delay = kb_cooldown;
+		mutex_rfb.unlock();
+		if (done)
+		{
+			std::this_thread::sleep_for(delay);
+			return;
+		}
+	}
 }
 
 Pix *RFBContext::screenshot()

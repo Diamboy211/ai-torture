@@ -17,7 +17,7 @@ start:
 	inc ah
 	mov cx, 0x2706
 	int 0x10
-	mov ax, 0x0202
+	mov ax, 0x0203
 	mov cx, 0x0002
 	xor dh, dh
 	mov bx, 0x7E00
@@ -65,7 +65,11 @@ loop0:
 	xor ax, ax
 	int 0x16
 	cmp al, 0x0D
-	je run
+	jne loop1
+	test si, si
+	jnz run
+	jmp loop0
+loop1:
 	mov dl, al
 	mov ah, 0x07
 	stosw
@@ -77,13 +81,13 @@ loop0:
 	stosw
 
 	cmp dl, 0x40
-	jb loop1
-	add dl, 9
-loop1:
-	cmp al, 0x40
 	jb loop2
-	add al, 9
+	add dl, 9
 loop2:
+	cmp al, 0x40
+	jb loop3
+	add al, 9
+loop3:
 	mov ah, dl
 	shl al, 4
 	shr ax, 4
@@ -98,19 +102,56 @@ disk_err:
 
 times (510-($-$$)) db 0
 dw 0xAA55
-db "---SECTORS 0/0/2 - 0/0/3---", 0x0A
+db "---SECTORS 0/0/2 - 0/0/4---", 0x0A
 db "These sectors are for persistent documentation. Modify as needed.", 0x0A
 db "Sector 0/0/1: The boot sector saves the boot drive number to 0:0x1000, "
 db "sets the video mode to 03h, "
-db "prints the content of sectors 0/0/2 - 0/0/3 as an ASCIIZ string to the screen, "
+db "prints the content of sectors 0/0/2 - 0/0/4 as an ASCIIZ string to the screen, "
 db "then waits for keyboard input.", 0x0A
 db "When hex digits (0-9,A-F,a-f) are typed, they are echoed on the screen.", 0x0A
 db "Every pair of hex digits typed will be converted into a byte as if they were a hex number, "
 db "then saved sequentially to a buffer starting at 0x1000:0.", 0x0A
-db "When the Enter key is pressed and an even number of hex digits has been typed, "
+db "When the Enter key is pressed and a positive even number of hex digits has been typed, "
 db "the program will execute a far jump to 0x1000:0.", 0x0A
-db "Sector 0/0/2 - 0/0/3: This document. Modify as needed.", 0x0A
-db "Sector 0/0/4 - 79/1/18: Free to use.", 0x0A
+db "Sector 0/0/2 - 0/0/4: This document. Modify as needed.", 0x0A
+db "Sector 0/0/5 - 79/1/18: Deadlock-causing malware. Free to use and modify.", 0x0A
+db "WARNINGS:", 0x0A
+db "0x1000:0 is jumped to with IF=0. Remember to reenable interrupts "
+db "or the system may be unrebootable via Ctrl-Alt-Del.", 0x0A
+db "Unspecified behavior is undefined behavior.", 0x0A
 db 0
-times (1536-($-$$)) db 0
-times (512*18*80*2-($-$$)) db 0
+times (2048-($-$$)) db 0
+%rep (512*18*80*2-($-$$))/512
+	times 450 nop
+	mov ax, 0x0003
+	int 0x10
+	mov ax, 0x0E00 + "g"
+	int 0x10
+	mov al, "i"
+	int 0x10
+	mov al, "t"
+	int 0x10
+	mov al, " "
+	int 0x10
+	mov al, "p"
+	int 0x10
+	mov al, "w"
+	int 0x10
+	mov al, "n"
+	int 0x10
+	mov al, "e"
+	int 0x10
+	mov al, "d"
+	int 0x10
+	mov al, " "
+	int 0x10
+	mov al, "f"
+	int 0x10
+	mov al, "a"
+	int 0x10
+	mov al, "g"
+	int 0x10
+	cli
+	hlt
+	jmp ($-2)
+%endrep

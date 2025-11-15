@@ -4,11 +4,17 @@ can current LLMs make an OS starting from machine code? ||no||
 
 dependencies: nasm, gcc, g++, make, cmake, libvncclient, leptonica, libcurl, nlohmann_json (3.12.0 tested), qemu-system-x86_64
 
-# building
+## building
 
-run `make` in the root of the project
+run these commands in the root of the project:
 
-# running
+```bash
+git submodule init
+git submodule update
+make
+```
+
+## running
 
 ensure that you have set the environment variables `OPENAI_API_KEY`, `OPENAI_API_BASE` (defaults to `https://api.deepseek.com`), `OPENAI_MODEL` (defaults to `deepseek-chat`) and `RFB_PORT` (defaults to 1)
 
